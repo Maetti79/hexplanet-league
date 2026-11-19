@@ -1,0 +1,43 @@
+name: Submit a core
+on:
+  issues:
+    types: [opened, edited]
+permissions:
+  contents: write
+  issues: write
+concurrency:
+  group: league-data
+  cancel-in-progress: false
+jobs:
+  submit:
+    if: startsWith(github.event.issue.title, 'core:')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check and store the core
+        id: check
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_USER: ${{ github.event.issue.user.login }}
+        run: node scripts/validate.mjs
+      - name: Save it
+        if: steps.check.outputs.ok == 'true'
+        run: |
+          git config user.name "hexplanet-league[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cores data
+          git commit -m "Core from ${ISSUE_USER}" || true
+          git pull --rebase && git push
+        env:
+          ISSUE_USER: ${{ github.event.issue.user.login }}
+      - name: Answer in the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OK: ${{ steps.check.outputs.ok }}
+          NUM: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$NUM" --repo "$GITHUB_REPOSITORY" --body-file reply.md
+          if [ "$OK" = "true" ]; then gh issue close "$NUM" --repo "$GITHUB_REPOSITORY"; fi
