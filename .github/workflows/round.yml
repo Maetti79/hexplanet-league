@@ -2,6 +2,9 @@ name: Play a league round
 on:
   schedule:
     - cron: '*/15 * * * *'
+  push:
+    branches: [main]
+    paths: ['engine/**', 'scripts/round.mjs', 'index.html', '.github/workflows/round.yml']
   workflow_dispatch:
     inputs:
       force:
@@ -25,7 +28,7 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
       - name: Play
-        run: node scripts/round.mjs ${{ github.event_name == 'workflow_dispatch' && inputs.force && '--force' || '' }}
+        run: node scripts/round.mjs ${{ (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.force)) && '--force' || '' }}
       - name: Publish results
         run: |
           git config user.name "hexplanet-league[bot]"
