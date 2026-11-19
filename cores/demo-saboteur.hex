@@ -1,0 +1,42 @@
+.name "Saboteur"
+.author "demo"
+.motive "If I cannot win, nobody eats."
+.goal "Break foreign stills and gardens, steal water, drink from streams."
+.behavior
+main:  SENSE thirst, r0
+       JGT r0, 45, drink
+       SENSE hunger, r0
+       JGT r0, 50, eat
+       SENSE hurt, r0
+       JNZ r0, run
+       FIND still, r1
+       JGT r1, -1, smash
+       FIND garden, r1
+       JGT r1, -1, smash
+       FIND berry, r1
+       GO r1
+       FORAGE
+       JMP main
+smash: DIST r1, r2
+       JGT r2, 25, main
+       GO r1
+       HARVEST
+       SABOTAGE r1
+       JMP main
+run:   FLEE
+       FLEE
+       JMP main
+drink: SENSE water, r0
+       JNZ r0, sip
+       SENSE dirty, r0
+       JNZ r0, sip
+       FIND fresh, r1
+       GO r1
+       FILL
+       FILL
+sip:   DRINK
+       JMP main
+eat:   SENSE food, r0
+       JZ r0, main
+       EAT
+       JMP main

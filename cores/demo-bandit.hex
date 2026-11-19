@@ -1,0 +1,59 @@
+.name "Bandit"
+.author "demo"
+.motive "Take from the weak, run from the strong."
+.goal "Forge a knife, rob and finish off gnomes below 40 hit points, avoid healthy ones."
+.behavior
+main:  SENSE thirst, r0
+       JGT r0, 50, drink
+       SENSE hunger, r0
+       JGT r0, 55, eat
+       SENSE knife, r0
+       JZ r0, forge
+       SENSE hp, r0
+       JLT r0, 40, hide
+       FIND weak, r1
+       JLT r1, 0, gather
+       MOV r3, r1
+       DIST r1, r2
+       JGT r2, 25, gather
+       JGT r2, 1, chase
+       ATTACK r1
+       STEAL r1
+       JMP main
+chase: GO r1
+       JMP main
+hide:  FLEE
+       REST
+       JMP main
+gather: FIND berry, r1
+       JLT r1, 0, main
+       GO r1
+       FORAGE
+       JMP main
+drink: SENSE dirty, r0
+       JNZ r0, sip
+       FIND fresh, r1
+       GO r1
+       FILL
+       FILL
+sip:   DRINK
+       JMP main
+eat:   SENSE food, r0
+       JZ r0, gather
+       EAT
+       JMP main
+forge: SENSE stone, r0
+       JZ r0, gs
+       SENSE wood, r0
+       JZ r0, gw
+       CRAFT knife
+       JMP main
+gs:    FIND rock, r1
+       JLT r1, 0, gather
+       GO r1
+       DIG
+       JMP main
+gw:    FIND tree, r1
+       GO r1
+       CHOP
+       JMP main

@@ -1,0 +1,78 @@
+.name "Farmer Joe"
+.author "demo"
+.motive "A full field is a full belly."
+.goal "Plant every seed near water, harvest, replant, filter well water."
+.behavior
+main:  SENSE threat, r0
+       JLT r0, 3, run
+       SENSE thirst, r0
+       JGT r0, 45, drink
+       SENSE hunger, r0
+       JGT r0, 50, eat
+       SENSE filter, r0
+       JZ r0, mkf
+       SENSE crop, r0
+       JEQ r0, 2, harv
+       SENSE seeds, r0
+       JNZ r0, plant
+       SENSE dirty, r0
+       JLT r0, 4, getw
+       REST
+       JMP main
+run:   FLEE
+       JMP main
+harv:  FIND crop, r1
+       GO r1
+       HARVEST
+       JMP main
+plant: SENSE dirty, r0
+       JZ r0, getw
+       FIND soil, r1
+       GO r1
+       DIST r1, r2
+       JGT r2, 0, main
+       PLANT
+       JMP main
+getw:  FIND fresh, r1
+       JLT r1, 0, main
+       GO r1
+       FILL
+       FILL
+       FILL
+       JMP main
+drink: SENSE water, r0
+       JNZ r0, sip
+       SENSE dirty, r0
+       JZ r0, getw
+       SENSE filter, r0
+       JZ r0, sip
+       FILTER
+sip:   DRINK
+       JMP main
+eat:   SENSE food, r0
+       JZ r0, forage
+       EAT
+       JMP main
+forage: FIND food, r1
+       JLT r1, 0, main
+       GO r1
+       HARVEST
+       FORAGE
+       JMP main
+mkf:   SENSE sand, r0
+       JLT r0, 2, gd
+       SENSE wood, r0
+       JZ r0, gw
+       CRAFT filter
+       JMP main
+gd:    FIND sand, r1
+       JLT r1, 0, plant
+       GO r1
+       DIST r1, r2
+       JGT r2, 0, main
+       DIG
+       JMP main
+gw:    FIND tree, r1
+       GO r1
+       CHOP
+       JMP main

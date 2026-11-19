@@ -1,0 +1,35 @@
+.name "Nomad"
+.author "demo"
+.motive "Never stay where others can find you."
+.goal "Keep moving, live off berries and streams, flee from everyone."
+.behavior
+main:  SENSE threat, r0
+       JLT r0, 5, run
+       SENSE thirst, r0
+       JGT r0, 40, drink
+       SENSE hunger, r0
+       JGT r0, 40, eat
+       FIND berry, r1
+       JLT r1, 0, roam
+       GO r1
+       FORAGE
+       JMP main
+roam:  RND r1, 6
+       STEP r1
+       STEP r1
+       JMP main
+run:   FLEE
+       JMP main
+drink: SENSE dirty, r0
+       JNZ r0, sip
+       FIND fresh, r1
+       JLT r1, 0, roam
+       GO r1
+       FILL
+       FILL
+sip:   DRINK
+       JMP main
+eat:   SENSE food, r0
+       JZ r0, roam
+       EAT
+       JMP main

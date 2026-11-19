@@ -1,0 +1,62 @@
+.name "Turtle"
+.author "demo"
+.motive "Slow, stubborn, still here."
+.goal "Camp beside one lake, keep stocks high, rest, hit back with a knife when attacked."
+.behavior
+main:  SENSE hurt, r0
+       JNZ r0, hit
+       SENSE thirst, r0
+       JGT r0, 35, drink
+       SENSE hunger, r0
+       JGT r0, 40, eat
+       SENSE knife, r0
+       JZ r0, forge
+       SENSE dirty, r0
+       JLT r0, 4, getw
+       SENSE food, r0
+       JLT r0, 2, gf
+       REST
+       JMP main
+hit:   FIND enemy, r1
+       DIST r1, r2
+       JGT r2, 1, main
+       ATTACK r1
+       JMP main
+getw:  FIND fresh, r1
+       JLT r1, 0, gf
+       GO r1
+       FILL
+       FILL
+       JMP main
+drink: SENSE dirty, r0
+       JZ r0, getw
+       DRINK
+       JMP main
+eat:   SENSE food, r0
+       JZ r0, gf
+       EAT
+       JMP main
+gf:    FIND food, r1
+       JLT r1, 0, fish
+       GO r1
+       FORAGE
+       JMP main
+fish:  FIND water, r1
+       GO r1
+       FISH
+       JMP main
+forge: SENSE stone, r0
+       JZ r0, gs
+       SENSE wood, r0
+       JZ r0, gw
+       CRAFT knife
+       JMP main
+gs:    FIND rock, r1
+       JLT r1, 0, getw
+       GO r1
+       DIG
+       JMP main
+gw:    FIND tree, r1
+       GO r1
+       CHOP
+       JMP main

@@ -1,0 +1,78 @@
+.name "Fisher King"
+.author "demo"
+.motive "The coast feeds whoever is patient."
+.goal "Settle on the shore, build a still, fish all day."
+.behavior
+main:  SENSE thirst, r0
+       JGT r0, 45, drink
+       SENSE hunger, r0
+       JGT r0, 45, eat
+       SENSE still, r0
+       JZ r0, build
+       SENSE salt, r0
+       JLT r0, 3, salt
+       SENSE water, r0
+       JLT r0, 2, boil
+       FIND sea, r1
+       GO r1
+       FISH
+       JMP main
+salt:  FIND sea, r1
+       JLT r1, 0, main
+       GO r1
+       FILL
+       FILL
+       FILL
+       JMP main
+boil:  FIND mystill, r1
+       GO r1
+       DESAL
+       JMP main
+drink: SENSE water, r0
+       JNZ r0, sip
+       SENSE dirty, r0
+       JNZ r0, sip
+       SENSE still, r0
+       JZ r0, fresh
+       SENSE salt, r0
+       JNZ r0, boil
+       JMP salt
+fresh: FIND fresh, r1
+       JLT r1, 0, salt
+       GO r1
+       FILL
+sip:   DRINK
+       JMP main
+eat:   SENSE food, r0
+       JZ r0, fish
+       EAT
+       JMP main
+fish:  FIND water, r1
+       GO r1
+       FISH
+       JMP main
+build: SENSE stone, r0
+       JLT r0, 3, gs
+       SENSE wood, r0
+       JLT r0, 2, gw
+       SENSE sand, r0
+       JZ r0, gd
+       FIND sea, r1
+       GO r1
+       CRAFT still
+       JMP main
+gs:    FIND rock, r1
+       JLT r1, 0, fish
+       GO r1
+       DIG
+       JMP main
+gw:    FIND tree, r1
+       GO r1
+       CHOP
+       JMP main
+gd:    FIND sand, r1
+       GO r1
+       DIST r1, r2
+       JGT r2, 0, main
+       DIG
+       JMP main

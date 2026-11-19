@@ -5,5 +5,54 @@
   "at": "2026-11-19T22:12:59.480Z",
   "name": "Tidekeeper",
   "played": false
+ },
+ "demo-bandit": {
+  "v": 1,
+  "hash": "161c5af8",
+  "at": "2026-11-19T22:20:02.804614Z",
+  "name": "Bandit",
+  "played": false
+ },
+ "demo-berserker": {
+  "v": 1,
+  "hash": "040a4394",
+  "at": "2026-11-19T22:20:02.839776Z",
+  "name": "Berserker",
+  "played": false
+ },
+ "demo-farmer": {
+  "v": 1,
+  "hash": "72ebab4c",
+  "at": "2026-11-19T22:20:02.868002Z",
+  "name": "Farmer Joe",
+  "played": false
+ },
+ "demo-fisher": {
+  "v": 1,
+  "hash": "7102bcc9",
+  "at": "2026-11-19T22:20:02.899143Z",
+  "name": "Fisher King",
+  "played": false
+ },
+ "demo-nomad": {
+  "v": 1,
+  "hash": "8c763642",
+  "at": "2026-11-19T22:20:02.925493Z",
+  "name": "Nomad",
+  "played": false
+ },
+ "demo-saboteur": {
+  "v": 1,
+  "hash": "b9581356",
+  "at": "2026-11-19T22:20:02.954438Z",
+  "name": "Saboteur",
+  "played": false
+ },
+ "demo-turtle": {
+  "v": 1,
+  "hash": "1fa58dea",
+  "at": "2026-11-19T22:20:02.978469Z",
+  "name": "Turtle",
+  "played": false
  }
 }

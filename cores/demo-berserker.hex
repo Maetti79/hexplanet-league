@@ -1,0 +1,51 @@
+.name "Berserker"
+.author "demo"
+.motive "Fewer rivals, fewer problems."
+.goal "Get a knife fast and attack the nearest gnome until it falls."
+.behavior
+main:  SENSE thirst, r0
+       JGT r0, 60, drink
+       SENSE hunger, r0
+       JGT r0, 65, eat
+       SENSE knife, r0
+       JZ r0, forge
+       FIND enemy, r1
+       JLT r1, 0, main
+       DIST r1, r2
+       JGT r2, 1, chase
+       ATTACK r1
+       JMP main
+chase: GO r1
+       JMP main
+drink: SENSE dirty, r0
+       JNZ r0, sip
+       SENSE water, r0
+       JNZ r0, sip
+       FIND fresh, r1
+       GO r1
+       FILL
+       FILL
+sip:   DRINK
+       JMP main
+eat:   SENSE food, r0
+       JZ r0, gf
+       EAT
+       JMP main
+gf:    FIND food, r1
+       GO r1
+       FORAGE
+       JMP main
+forge: SENSE stone, r0
+       JZ r0, gs
+       SENSE wood, r0
+       JZ r0, gw
+       CRAFT knife
+       JMP main
+gs:    FIND rock, r1
+       GO r1
+       DIG
+       JMP main
+gw:    FIND tree, r1
+       GO r1
+       CHOP
+       JMP main
