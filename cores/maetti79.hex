@@ -1,121 +1,154 @@
-; Cistern: filtert Brunnenwasser, hat ein Messer zur Abwehr und ein Beet in Reserve.
-.name "Cistern"
-.author "claude"
-.version 1
-.motive "Clean water first, everything else second."
-.goal "Build a filter and a knife, keep two clean waters and food in stock, fight back only when hurt."
+.name "Tidekeeper"
+.author "ChatGPT"
+.version 2
+.motive "Clean water, full pantry, calm nerves."
+.goal "Settle by the sea, distil water, fish, and defend the coast."
 .behavior
-main:   SENSE hurt, r0
-        JNZ r0, defend
-        SENSE thirst, r0
-        JGT r0, 45, drink
-        SENSE hunger, r0
-        JGT r0, 50, eat
-        SENSE filter, r0
-        JZ r0, mkfilt
-        SENSE knife, r0
-        JZ r0, mkknife
-        SENSE water, r0
-        JLT r0, 2, getw
-        SENSE food, r0
-        JLT r0, 3, getf
-        SENSE crop, r0
-        JEQ r0, 2, harv
-        JZ r0, plant
-        REST
-        JMP main
-defend: FIND enemy, r1
-        DIST r1, r2
-        JGT r2, 1, main
-        SENSE knife, r0
-        JZ r0, run
-        ATTACK r1
-        JMP main
-run:    FLEE
-        JMP main
-drink:  SENSE water, r0
-        JNZ r0, sipc
-        SENSE dirty, r0
-        JZ r0, getw
-        SENSE filter, r0
-        JZ r0, sipd
-        FILTER
-sipc:   DRINK water
-        JMP main
-sipd:   DRINK dirty
-        JMP main
-getw:   SENSE dirty, r0
-        JGT r0, 0, clean
-        FIND fresh, r1
-        JLT r1, 0, main
-        GO r1
-        DIST r1, r2
-        JGT r2, 1, main
-        FILL
-        FILL
-        FILL
-        JMP main
-clean:  SENSE filter, r0
-        JZ r0, main
-        FILTER
-        JMP main
-eat:    SENSE food, r0
-        JZ r0, getf
-        EAT
-        JMP main
-getf:   FIND food, r1
-        JLT r1, 0, fish
-        GO r1
-        DIST r1, r2
-        JGT r2, 1, main
-        HARVEST
-        FORAGE
-        JMP main
-fish:   FIND water, r1
-        JLT r1, 0, main
-        GO r1
-        FISH
-        JMP main
-harv:   FIND crop, r1
-        GO r1
-        HARVEST
-        JMP main
-plant:  SENSE seeds, r0
-        JZ r0, main
-        SENSE dirty, r0
-        JZ r0, getw
-        FIND soil, r1
-        GO r1
-        DIST r1, r2
-        JGT r2, 0, main
-        PLANT
-        JMP main
-mkfilt: SENSE sand, r0
-        JLT r0, 2, gsand
-        SENSE wood, r0
-        JZ r0, gwood
-        CRAFT filter
-        JMP main
-mkknife: SENSE stone, r0
-        JZ r0, gstone
-        SENSE wood, r0
-        JZ r0, gwood
-        CRAFT knife
-        JMP main
-gsand:  FIND sand, r1
-        JLT r1, 0, mkknife
-        GO r1
-        DIST r1, r2
-        JGT r2, 0, main
-        DIG
-        JMP main
-gstone: FIND rock, r1
-        JLT r1, 0, getw
-        GO r1
-        DIG
-        JMP main
-gwood:  FIND tree, r1
-        JLT r1, 0, main
-        GO r1
-        CHOP
-        JMP main
+main:
+ SENSE threat, r0
+ JGT r0, 1, needs
+ SENSE knife, r0
+ JZ r0, escape
+ FIND enemy, r1
+ ATTACK r1
+ JMP main
+escape:
+ FLEE
+ JMP main
+needs:
+ SENSE thirst, r0
+ JGT r0, 45, drink
+ SENSE hunger, r0
+ JGT r0, 45, eat
+ SENSE knife, r0
+ JZ r0, forge
+ SENSE still, r0
+ JZ r0, build
+ SENSE water, r0
+ JLT r0, 6, boil
+ SENSE food, r0
+ JLT r0, 8, fish
+ SENSE knife, r0
+ JZ r0, forge
+ SENSE hp, r0
+ JLT r0, 100, rest
+ WAIT 20
+ JMP main
+rest:
+ REST
+ JMP main
+drink:
+ SENSE water, r0
+ JNZ r0, sip
+ SENSE still, r0
+ JNZ r0, boil
+ SENSE dirty, r0
+ JNZ r0, raw
+ FIND fresh, r1
+ JLT r1, 0, build
+ GO r1
+ FILL
+ JMP main
+raw:
+ DRINK dirty
+ JMP main
+sip:
+ DRINK water
+ JMP main
+eat:
+ SENSE food, r0
+ JZ r0, fish
+ EAT
+ JMP main
+fish:
+ FIND water, r1
+ JLT r1, 0, wander
+ DIST r1, r2
+ JGT r2, 1, walk
+ FISH
+ JMP main
+boil:
+ SENSE salt, r0
+ JZ r0, salt
+ FIND mystill, r1
+ JLT r1, 0, build
+ DIST r1, r2
+ JGT r2, 1, walk
+ DESAL
+ JMP main
+salt:
+ FIND sea, r1
+ JLT r1, 0, wander
+ DIST r1, r2
+ JGT r2, 1, walk
+ FILL
+ SENSE salt, r0
+ JNZ r0, main
+ ; A mixed fresh/sea shore may fill dirty water first.
+ SENSE dirty, r0
+ JGT r0, 4, shift
+ JMP main
+build:
+ SENSE stone, r0
+ JLT r0, 3, stone
+ SENSE wood, r0
+ JLT r0, 2, wood
+ SENSE sand, r0
+ JLT r0, 1, sand
+ FIND sea, r1
+ JLT r1, 0, wander
+ DIST r1, r2
+ JGT r2, 1, walk
+ CRAFT still
+ JZ r15, main
+ FIND sand, r1
+ JLT r1, 0, ground
+ GO r1
+ CRAFT still
+ JMP main
+ground:
+ FIND soil, r1
+ JLT r1, 0, wander
+ GO r1
+ CRAFT still
+ JMP main
+forge:
+ SENSE stone, r0
+ JZ r0, stone
+ SENSE wood, r0
+ JZ r0, wood
+ CRAFT knife
+ JMP main
+stone:
+ FIND rock, r1
+ JLT r1, 0, wander
+ DIST r1, r2
+ JGT r2, 1, walk
+ DIG
+ JMP main
+wood:
+ FIND tree, r1
+ JLT r1, 0, wander
+ DIST r1, r2
+ JGT r2, 1, walk
+ CHOP
+ JMP main
+sand:
+ FIND sand, r1
+ JLT r1, 0, wander
+ DIST r1, r2
+ JGT r2, 0, walk
+ DIG
+ JMP main
+walk:
+ GO r1
+ JLT r15, 0, wander
+ JMP main
+shift:
+ RND r1, 6
+ STEP r1
+ JMP main
+wander:
+ RND r1, 6
+ STEP r1
+ JMP main
