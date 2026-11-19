@@ -3,7 +3,7 @@
    Jeder Agent steuert einen Wicht. Er muss trinken, essen und ueberleben; wer zuletzt lebt, gewinnt.
    Die Engine kennt keine Grafik: sie laeuft im Spiel mit 100-facher Geschwindigkeit und ohne Bild fuer Ranglisten. */
 
-export const ARENA_VERSION = 1;
+export const ARENA_VERSION = 2;
 
 // ---------- Regeln ----------
 export const RULES = {
@@ -14,15 +14,25 @@ export const RULES = {
   drink: { water: -40, dirty: -30, salt: 10 }, sickChance: 0.35, sickDmg: 12, saltDmg: 4,
   eat: -35,
   start: { seeds: 2, food: 1, water: 1 },
-  recipes: { knife: { stone: 1, wood: 1 }, filter: { sand: 2, wood: 1 }, still: { stone: 3, wood: 2, sand: 1 } },
+  recipes: { knife: { stone: 1, wood: 1 }, filter: { sand: 2, wood: 1 }, still: { stone: 3, wood: 2, sand: 1 }, axe: { stone: 1, wood: 2 }, shovel: { stone: 2, wood: 1 }, boat: { wood: 8 } },
+  axeUses: 30, shovelUses: 30, boatWear: 400, gasFlights: 3, flyMax: 80, wall: { stone: 2 },
   knifeUses: 30, filterUses: 10,
   cropGrow: 900, cropWither: 1500, berryRegrow: 600, treeWood: 4,
   dmgHand: 5, dmgKnife: 18, stealChance: 0.45,
-  ticks: { fill: 5, drink: 2, filter: 8, desal: 25, chop: 6, dig: 6, forage: 6, fish: 10, plant: 6, harvest: 4, eat: 2, craft: 12, attack: 4, steal: 4, sabotage: 8, rest: 10, say: 1 },
+  // Version 2: simulierte Liga-Token, Haendler, Felder, Huetten, Feuer, Nacht und Gewitter
+  tokens: 100, traders: 6, till: 400,
+  sell: { wood: 2, stone: 3, sand: 1, food: 4, water: 3, dirty: 1, salt: 0, seeds: 1 },
+  buy: { knife: 14, filter: 10, seeds: 3, food: 7, water: 5, axe: 8, shovel: 8, boat: 40, balloon: 90, gas: 15 },
+  claimCost: 25, claimRadius: 2,
+  home: [null, { wood: 4, stone: 2, tokens: 0 }, { wood: 6, stone: 4, tokens: 30 }, { stone: 8, sand: 2, tokens: 60 }],
+  homeArmor: [1, 0.7, 0.5, 0.3],
+  fire: { wood: 2 }, fireTicks: 800,
+  day: 2400, night: 0.6, nightDmg: 0.03, stormEvery: 3000, stormLen: 500, stormR: 14, stormDmg: 0.07,
+  ticks: { sell: 3, buy: 3, claim: 10, build: 20, upgrade: 30, boil: 10, fill: 5, drink: 2, filter: 8, desal: 25, chop: 6, dig: 6, forage: 6, fish: 10, plant: 6, harvest: 4, eat: 2, craft: 12, attack: 4, steal: 4, sabotage: 8, rest: 10, say: 1 },
 };
-const ITEMS = ['water', 'dirty', 'salt', 'food', 'seeds', 'wood', 'stone', 'sand', 'knife', 'filter'];
-const SENSES = ['hp', 'thirst', 'hunger', ...ITEMS, 'still', 'crop', 'tick', 'alive', 'threat', 'hurt', 'cell', 'id', 'rank', 'drought'];
-const KINDS = ['fresh', 'sea', 'water', 'tree', 'berry', 'rock', 'sand', 'soil', 'enemy', 'weak', 'strong', 'crop', 'mycrop', 'garden', 'still', 'mystill', 'food'];
+const ITEMS = ['water', 'dirty', 'salt', 'food', 'seeds', 'wood', 'stone', 'sand', 'knife', 'filter', 'axe', 'shovel', 'boat', 'balloon', 'gas'];
+const SENSES = ['hp', 'thirst', 'hunger', ...ITEMS, 'still', 'crop', 'tick', 'alive', 'threat', 'hurt', 'cell', 'id', 'rank', 'drought', 'tokens', 'night', 'storm', 'home', 'field', 'shelter', 'fire', 'afloat'];
+const KINDS = ['fresh', 'sea', 'water', 'tree', 'berry', 'rock', 'sand', 'soil', 'enemy', 'weak', 'strong', 'crop', 'mycrop', 'garden', 'still', 'mystill', 'food', 'trader', 'home', 'hut', 'fire', 'myfield', 'free'];
 
 // ---------- Assembler ----------
 const OPS = {
@@ -34,9 +44,10 @@ const OPS = {
   // Handlungen (kosten Zeit)
   STEP: 's', GO: 's', FLEE: '', FILL: '', DRINK: 'k?', FILTER: '', DESAL: '', CHOP: '', DIG: '', FORAGE: '', FISH: '',
   PLANT: '', HARVEST: '', EAT: '', CRAFT: 'k', ATTACK: 's', STEAL: 's', SABOTAGE: 's', REST: '', WAIT: 's', SAY: 't',
+  SELL: 'k s?', BUY: 'k', CLAIM: '', BUILD: 'k s?', UPGRADE: '', BOIL: '', FLY: 's',
 };
-const ACTIONS = new Set(['STEP', 'GO', 'FLEE', 'FILL', 'DRINK', 'FILTER', 'DESAL', 'CHOP', 'DIG', 'FORAGE', 'FISH', 'PLANT', 'HARVEST', 'EAT', 'CRAFT', 'ATTACK', 'STEAL', 'SABOTAGE', 'REST', 'WAIT', 'SAY']);
-const KEYWORDS = { SENSE: SENSES, FIND: KINDS, CRAFT: Object.keys(RULES.recipes), DRINK: ['water', 'dirty', 'salt'] };
+const ACTIONS = new Set(['STEP', 'GO', 'FLEE', 'FILL', 'DRINK', 'FILTER', 'DESAL', 'CHOP', 'DIG', 'FORAGE', 'FISH', 'PLANT', 'HARVEST', 'EAT', 'CRAFT', 'ATTACK', 'STEAL', 'SABOTAGE', 'REST', 'WAIT', 'SAY', 'SELL', 'BUY', 'CLAIM', 'BUILD', 'UPGRADE', 'BOIL', 'FLY']);
+const KEYWORDS = { SENSE: SENSES, FIND: KINDS, CRAFT: Object.keys(RULES.recipes), DRINK: ['water', 'dirty', 'salt'], SELL: Object.keys(RULES.sell), BUY: Object.keys(RULES.buy), BUILD: ['hut', 'fire', 'wall'] };
 const MAXCODE = 256;
 
 export function assemble(src) {
@@ -95,9 +106,12 @@ export function createRound(world, entries, opts = {}) {
   const inA = { has: c => c >= 0 && world.inArena(c) };
   const kmap = new Map(), kind = { get: c => { let k = kmap.get(c); if (k === undefined) { k = world.kind(c); kmap.set(c, k); } return k; }, set: (c, k) => kmap.set(c, k) };
   const isWater = c => { const k = kind.get(c); return k === 'sea' || k === 'fresh'; };
-  const passable = c => inA.has(c) && !isWater(c) && kind.get(c) !== 'wall';
+  const walls = new Map();
+  const passable = c => inA.has(c) && !isWater(c) && kind.get(c) !== 'wall' && !walls.has(c);
+  const canEnter = (a, c) => passable(c) || (a && a.inv.boat > 0 && inA.has(c) && isWater(c));      // mit Boot geht es uebers Wasser
   const nbs = c => { const o = []; for (let k = 0; k < world.ncnt(c); k++) { const n = world.nb(c, k); if (n >= 0 && inA.has(n)) o.push(n); } return o; };
   const occ = new Map();                     // Zelle -> Agent
+  const fields = new Map(), homes = new Map(), fires = new Map(), traders = [];     // Feldzelle -> Besitzer, Huette, Feuer, Haendler
   const log = [], events = [];
   const say = (tick, who, text) => { log.push({ t: tick, who, text }); if (log.length > 4000) log.shift(); };
 
@@ -109,16 +123,22 @@ export function createRound(world, entries, opts = {}) {
     for (let tries = 0; tries < 4000 && best < 0; tries++) {
       const c = world.randomCell(rand); if (!passable(c) || occ.has(c)) continue;
       if (agents.some(a => world.dist(a.cell, c) < (opts.minGap || 12))) continue;
-      if (tries < 3000 && !bfs(c, 25, isWater)) continue;
+      if (tries < 3000 && (!bfs(c, 25, isWater) || !bfs(c, 30, x => kind.get(x) === 'tree') || (tries < 2000 && !bfs(c, 30, x => kind.get(x) === 'rock')))) continue;
       best = c;
     }
     const inv = {}; for (const k of ITEMS) inv[k] = R.start[k] || 0;
     const a = { id: i, key: e.key || ('core' + i), name: asm.meta.name, author: asm.meta.author, meta: asm.meta, code: asm.code, errors: asm.errors, src: e.code,
+      tokens: R.tokens, field: -1, homeCell: -1,
       pc: 0, r: new Int32Array(16), mem: new Int32Array(64), stack: [], cell: best, hp: 100, thirst: 0, hunger: 0, inv, busy: 0, task: null,
       alive: true, diedAt: -1, cause: '', kills: 0, hurtAt: -999, stats: { drank: 0, ate: 0, crafted: 0, planted: 0, harvested: 0, stolen: 0, sabotaged: 0, steps: 0, damage: 0 } };
     agents.push(a); occ.set(best, a);
   });
-  const round = { tick: 0, agents, log, events, crops, stills, kind, over: false, winner: null, seed: opts.seed || 12345, world, rules: R };
+  // Haendler an zufaelligen Orten, jeder mit eigener Kasse
+  for (let i = 0, tries = 0; traders.length < Math.max(R.traders, Math.ceil(agents.length / 2)) && tries < 5000; tries++) {
+    const c = world.randomCell(rand); if (!passable(c) || occ.has(c) || traders.some(t => world.dist(t.cell, c) < 20)) continue;
+    traders.push({ cell: c, till: R.till }); occ.set(c, { trader: true, alive: false });
+  }
+  const round = { tick: 0, agents, log, events, crops, stills, kind, fields, homes, fires, traders, walls, storm: null, over: false, winner: null, seed: opts.seed || 12345, world, rules: R };
 
   // Breitensuche ueber begehbare Zellen; Wasserzellen sind Ziele am Rand
   function bfs(from, radius, test) {
@@ -131,7 +151,8 @@ export function createRound(world, entries, opts = {}) {
     }
     return null;
   }
-  function pathTo(from, to, maxD = 60) {
+  function pathTo(from, to, maxD = 60, ag = null) {
+    const passable = c => canEnter(ag, c);
     if (from === to) return [];
     const prev = new Map([[from, -1]]), q = [from];
     for (let i = 0; i < q.length && i < 6000; i++) {
@@ -170,6 +191,10 @@ export function createRound(world, entries, opts = {}) {
       garden: c => { const q = crops.get(c); return q && q.owner !== a.id; },
       still: c => { const q = stills.get(c); return q && q.owner !== a.id; },
       mystill: c => { const q = stills.get(c); return q && q.owner === a.id; },
+      trader: c => traders.some(t => t.cell === c),
+      home: c => c === a.homeCell && homes.has(c), hut: c => { const h = homes.get(c); return h && h.owner !== a.id; },
+      fire: c => { const f = fires.get(c); return f && f.until > t; },
+      myfield: c => c === a.field, free: c => passable(c) && !occ.has(c) && fieldCells(c).every(x => !fields.has(x) || fields.get(x) === a.id),
       food: c => { const q = crops.get(c); return (q && t - q.t >= R.cropGrow) || (kind.get(c) === 'tree' && (berryAt.get(c) || 0) <= t); },
     }[k];
     const r = bfs(a.cell, R.findRadius, test);
@@ -187,6 +212,9 @@ export function createRound(world, entries, opts = {}) {
       case 'hurt': return round.tick - a.hurtAt < 50 ? 1 : 0;
       case 'cell': return a.cell; case 'id': return a.id;
       case 'rank': return 1 + agents.filter(o => o.alive && o.hp > a.hp).length;
+      case 'tokens': return a.tokens; case 'night': return isNight() ? 1 : 0; case 'storm': return inStorm(a.cell) ? 1 : 0;
+      case 'home': { const h = homeOf(a); return h ? h.tier : 0; } case 'field': return fields.get(a.cell) === a.id ? 1 : 0;
+      case 'shelter': return sheltered(a) ? 1 : 0; case 'fire': return nearFire(a) ? 1 : 0; case 'afloat': return isWater(a.cell) ? 1 : 0;
     }
     return 0;
   }
@@ -201,11 +229,20 @@ export function createRound(world, entries, opts = {}) {
   }
   function die(a, by, cause) {
     a.alive = false; a.hp = 0; a.diedAt = round.tick; a.cause = cause; occ.delete(a.cell);
-    if (by && by !== a) { by.kills++; for (const k of ITEMS) { by.inv[k] += a.inv[k]; a.inv[k] = 0; } }
+    if (by && by !== a) { by.kills++; for (const k of ITEMS) { by.inv[k] += a.inv[k]; a.inv[k] = 0; } by.tokens += a.tokens; a.tokens = 0; }
     say(round.tick, a.name, 'died: ' + cause + (by && by !== a ? ' (' + by.name + ')' : ''));
     events.push({ t: round.tick, type: 'death', who: a.id, by: by ? by.id : -1, cause });
   }
   const agentAt = c => { const o = occ.get(c); return o && o.alive ? o : null; };
+  const isNight = () => (round.tick % R.day) / R.day >= R.night;
+  const inStorm = c => !!(round.storm && round.tick < round.storm.until && world.dist(round.storm.c, c) <= R.stormR);
+  const homeOf = a => { const h = homes.get(a.homeCell); return h && h.owner === a.id ? h : null; };
+  const sheltered = a => { const h = homeOf(a); return !!(h && a.cell === a.homeCell); };
+  const nearFire = a => { for (const c of [a.cell, ...nbs(a.cell)]) { const f = fires.get(c); if (f && f.until > round.tick) return true; } return false; };
+  const foreignField = (a, c) => { const o = fields.get(c); return o !== undefined && o !== a.id; };
+  const nearTrader = a => traders.find(t => adjCell(a.cell, t.cell));
+  const adjCell = (x, c) => x === c || nbs(x).includes(c);
+  function fieldCells(c) { const out = [c], seen = new Set([c]); let fr = [c]; for (let d = 0; d < R.claimRadius; d++) { const nx = []; for (const v of fr) for (const n of nbs(v)) if (!seen.has(n)) { seen.add(n); nx.push(n); out.push(n); } fr = nx; } return out; }
 
   // Eine Handlung beginnen: Dauer festlegen, Wirkung am Ende
   function startAction(a, ins) {
@@ -217,8 +254,14 @@ export function createRound(world, entries, opts = {}) {
       case 'STEP': case 'GO': {
         let target = val(a, arg);
         if (op === 'STEP' && target >= 0 && target < 6) { const n = world.nb(a.cell, target); target = n; }
+        if (op === 'GO' && target === -1) {          // GO -1 erkundet: irgendwohin, etwa 12 Schritte weit, wo man noch nicht war
+          const ring = []; const seen = new Map([[a.cell, 0]]), q = [a.cell];
+          for (let i = 0; i < q.length && i < 3000; i++) { const c = q[i], d = seen.get(c); if (d === R.goSteps) { ring.push(c); continue; } for (const n of nbs(c)) if (!seen.has(n) && canEnter(a, n) && !occ.has(n)) { seen.set(n, d + 1); q.push(n); } }
+          if (!ring.length) return fail('nowhere to explore');
+          target = ring[Math.floor(rand() * ring.length)];
+        }
         if (!inA.has(target)) return fail('target outside the arena');
-        const p = pathTo(a.cell, target); if (!p || !p.length) return fail('no path');
+        const p = pathTo(a.cell, target, 60, a); if (!p || !p.length) return fail('no path');
         a.path = p.slice(0, op === 'STEP' ? 1 : R.goSteps); return done(R.stepTicks, stepFn);
       }
       case 'FLEE': {
@@ -229,7 +272,7 @@ export function createRound(world, entries, opts = {}) {
         return done(R.stepTicks, stepFn);
       }
       case 'FILL': {
-        const w = nbs(a.cell).find(isWater); if (w === undefined) return fail('no water next to you');
+        const w = isWater(a.cell) ? a.cell : nbs(a.cell).find(isWater); if (w === undefined) { if (inStorm(a.cell)) return done(T.fill, () => { a.inv.water++; }); return fail('no water next to you'); }
         return done(T.fill, () => { if (kind.get(w) === 'sea') a.inv.salt++; else a.inv.dirty++; });
       }
       case 'DRINK': {
@@ -248,30 +291,30 @@ export function createRound(world, entries, opts = {}) {
         return done(T.desal, () => { if (!stills.has(st.cell)) return; a.inv.salt--; a.inv.water++; });
       }
       case 'CHOP': {
-        const tc = [a.cell, ...nbs(a.cell)].find(c => kind.get(c) === 'tree'); if (tc === undefined) return fail('no tree next to you');
-        return done(T.chop, () => { if (kind.get(tc) !== 'tree') return; a.inv.wood++; const w = (wood.get(tc) || 0) + 1; wood.set(tc, w);
+        const tc = [a.cell, ...nbs(a.cell)].find(c => kind.get(c) === 'tree' && !foreignField(a, c)); if (tc === undefined) return fail('no tree next to you');
+        return done(T.chop, () => { if (kind.get(tc) !== 'tree') return; a.inv.wood++; if (a.inv.axe > 0) { a.inv.axe--; a.inv.wood++; } const w = (wood.get(tc) || 0) + 1; wood.set(tc, w);
           if (w >= R.treeWood) { kind.set(tc, 'soil'); wood.delete(tc); world.onChange && world.onChange(tc, 'soil'); } });
       }
       case 'DIG': {
         const k = kind.get(a.cell), rc = nbs(a.cell).find(c => kind.get(c) === 'rock');
         const what = k === 'sand' ? 'sand' : (k === 'rock' || rc !== undefined) ? 'stone' : null; if (!what) return fail('nothing to dig here');
-        return done(T.dig, () => { a.inv[what]++; });
+        return done(T.dig, () => { a.inv[what]++; if (a.inv.shovel > 0) { a.inv.shovel--; a.inv[what]++; } });
       }
       case 'FORAGE': {
-        const tc = [a.cell, ...nbs(a.cell)].find(c => kind.get(c) === 'tree' && (berryAt.get(c) || 0) <= round.tick); if (tc === undefined) return fail('no berries next to you');
+        const tc = [a.cell, ...nbs(a.cell)].find(c => kind.get(c) === 'tree' && (berryAt.get(c) || 0) <= round.tick && !foreignField(a, c)); if (tc === undefined) return fail('no berries next to you');
         return done(T.forage, () => { berryAt.set(tc, round.tick + R.berryRegrow); if (rand() < 0.55) a.inv.food++; });
       }
       case 'FISH': {
-        if (!nbs(a.cell).some(isWater)) return fail('no water next to you');
-        return done(T.fish, () => { if (rand() < (a.inv.knife ? 0.35 : 0.18)) a.inv.food++; });
+        if (!isWater(a.cell) && !nbs(a.cell).some(isWater)) return fail('no water next to you');
+        return done(T.fish, () => { if (rand() < (isWater(a.cell) ? 0.5 : a.inv.knife ? 0.35 : 0.18)) a.inv.food++; });
       }
       case 'PLANT': {
-        if (!a.inv.seeds) return fail('no seeds'); if (kind.get(a.cell) !== 'soil' || crops.has(a.cell) || stills.has(a.cell)) return fail('cannot plant here');
+        if (!a.inv.seeds) return fail('no seeds'); if (foreignField(a, a.cell)) return fail('foreign field'); if (kind.get(a.cell) !== 'soil' || crops.has(a.cell) || stills.has(a.cell)) return fail('cannot plant here');
         if (!a.inv.water && !a.inv.dirty) return fail('a seed needs water');
         return done(T.plant, () => { a.inv.seeds--; if (a.inv.dirty) a.inv.dirty--; else a.inv.water--; crops.set(a.cell, { owner: a.id, t: round.tick, cell: a.cell }); a.stats.planted++; events.push({ t: round.tick, type: 'plant', who: a.id, cell: a.cell }); });
       }
       case 'HARVEST': {
-        const cc = [a.cell, ...nbs(a.cell)].find(c => { const q = crops.get(c); return q && round.tick - q.t >= R.cropGrow; });
+        const cc = [a.cell, ...nbs(a.cell)].find(c => { const q = crops.get(c); return q && round.tick - q.t >= R.cropGrow && !(foreignField(a, c) && q.owner !== a.id); });
         if (cc === undefined) return fail('no ripe crop next to you');
         return done(T.harvest, () => { const q = crops.get(cc); if (!q) return; crops.delete(cc); a.inv.food += 3; a.inv.seeds += 1; a.stats.harvested++; if (q.owner !== a.id) a.stats.stolen++; events.push({ t: round.tick, type: 'harvest', who: a.id, cell: cc }); });
       }
@@ -280,21 +323,65 @@ export function createRound(world, entries, opts = {}) {
         const rc = R.recipes[arg.v]; for (const k in rc) if (a.inv[k] < rc[k]) return fail('missing ' + k);
         if (arg.v === 'still' && (kind.get(a.cell) !== 'soil' && kind.get(a.cell) !== 'sand' || crops.has(a.cell) || stills.has(a.cell))) return fail('a still needs free ground');
         return done(T.craft, () => { for (const k in rc) a.inv[k] -= rc[k]; a.stats.crafted++;
-          if (arg.v === 'knife') a.inv.knife += R.knifeUses; else if (arg.v === 'filter') a.inv.filter += R.filterUses;
+          if (arg.v === 'knife') a.inv.knife += R.knifeUses; else if (arg.v === 'filter') a.inv.filter += R.filterUses; else if (arg.v === 'axe') a.inv.axe += R.axeUses; else if (arg.v === 'shovel') a.inv.shovel += R.shovelUses; else if (arg.v === 'boat') a.inv.boat += R.boatWear;
           else { for (const [c, s] of stills) if (s.owner === a.id) stills.delete(c); stills.set(a.cell, { owner: a.id, cell: a.cell, t: round.tick }); events.push({ t: round.tick, type: 'still', who: a.id, cell: a.cell }); } });
       }
       case 'ATTACK': case 'STEAL': {
         const c = val(a, arg), o = agentAt(c); if (!o || o === a) return fail('nobody there'); if (!adj(a, c)) return fail('too far away');
-        if (op === 'ATTACK') return done(R.ticks.attack, () => { if (!o.alive || !adj(a, o.cell)) return; const k = a.inv.knife > 0; if (k) a.inv.knife--; damage(o, k ? R.dmgKnife : R.dmgHand, a, k ? 'knife' : 'fists'); events.push({ t: round.tick, type: 'attack', who: a.id, target: o.id }); });
+        if (op === 'ATTACK') return done(R.ticks.attack, () => { if (!o.alive || !adj(a, o.cell)) return; const k = a.inv.knife > 0; if (k) a.inv.knife--; const hh = sheltered(o) ? homeOf(o).tier : 0; damage(o, (k ? R.dmgKnife : R.dmgHand) * R.homeArmor[hh], a, k ? 'knife' : 'fists'); events.push({ t: round.tick, type: 'attack', who: a.id, target: o.id }); });
         return done(R.ticks.steal, () => { if (!o.alive || !adj(a, o.cell)) return; o.hurtAt = round.tick;
           if (rand() < R.stealChance) { const pool = ['food', 'water', 'dirty', 'salt', 'wood', 'stone', 'sand', 'seeds'].filter(k => o.inv[k] > 0); if (pool.length) { const k = pool[Math.floor(rand() * pool.length)]; o.inv[k]--; a.inv[k]++; a.stats.stolen++; } } });
       }
       case 'SABOTAGE': {
         const c = val(a, arg); if (!adj(a, c)) return fail('too far away');
-        const s = stills.get(c), q = crops.get(c); if (!(s && s.owner !== a.id) && !(q && q.owner !== a.id)) return fail('nothing foreign to break');
-        return done(T.sabotage, () => { if (s && stills.get(c) === s) stills.delete(c); else if (q && crops.get(c) === q) crops.delete(c); a.stats.sabotaged++; events.push({ t: round.tick, type: 'sabotage', who: a.id, cell: c }); });
+        const s = stills.get(c), q = crops.get(c), hm = homes.get(c), wl = walls.get(c); if (!(s && s.owner !== a.id) && !(q && q.owner !== a.id) && !(hm && hm.owner !== a.id) && !wl) return fail('nothing foreign to break');
+        return done(T.sabotage, () => { if (wl && walls.get(c) === wl) walls.delete(c); else if (hm && homes.get(c) === hm) { if (--hm.tier <= 0) homes.delete(c); } else if (s && stills.get(c) === s) stills.delete(c); else if (q && crops.get(c) === q) crops.delete(c); a.stats.sabotaged++; events.push({ t: round.tick, type: 'sabotage', who: a.id, cell: c }); });
       }
-      case 'REST': return done(T.rest, () => { if (a.thirst < 70 && a.hunger < 70) a.hp = Math.min(100, a.hp + 3); });
+      case 'REST': return done(T.rest, () => { if (a.thirst < 70 && a.hunger < 70) a.hp = Math.min(100, a.hp + 3 * (sheltered(a) ? 1 + homeOf(a).tier : 1)); });
+      case 'SELL': case 'BUY': {
+        const tr = nearTrader(a); if (!tr) return fail('no trader next to you');
+        const it = arg.v, n = Math.max(1, Math.min(20, ins.args[1] ? val(a, ins.args[1]) : 1));
+        if (op === 'SELL') { if (a.inv[it] < n) return fail('not enough ' + it);
+          return done(T.sell, () => { const p = R.sell[it] * n; const f = Math.max(0.1, Math.min(1, tr.till / R.till)); const pay = Math.floor(p * f); if (tr.till < pay) return; a.inv[it] -= n; a.tokens += pay; tr.till -= pay; }); }
+        const p = R.buy[it]; if (a.tokens < p) return fail('not enough tokens');
+        return done(T.buy, () => { if (a.tokens < p) return; a.tokens -= p; tr.till += p; if (it === 'knife') a.inv.knife += R.knifeUses; else if (it === 'filter') a.inv.filter += R.filterUses; else if (it === 'axe') a.inv.axe += R.axeUses; else if (it === 'shovel') a.inv.shovel += R.shovelUses; else if (it === 'boat') a.inv.boat += R.boatWear; else if (it === 'balloon') { a.inv.balloon = 1; a.inv.gas += R.gasFlights; } else a.inv[it]++; });
+      }
+      case 'CLAIM': {
+        if (a.tokens < R.claimCost) return fail('not enough tokens'); if (!passable(a.cell)) return fail('cannot claim here');
+        const cells = fieldCells(a.cell); if (cells.some(c => fields.has(c) && fields.get(c) !== a.id)) return fail('too close to a foreign field');
+        if (cells.some(c => traders.some(t => t.cell === c))) return fail('too close to a trader');
+        return done(T.claim, () => { a.tokens -= R.claimCost;
+          for (const [c, o] of fields) if (o === a.id) fields.delete(c);
+          if (a.homeCell >= 0 && homes.get(a.homeCell)?.owner === a.id) homes.delete(a.homeCell); a.homeCell = -1;
+          for (const c of cells) fields.set(c, a.id); a.field = a.cell; events.push({ t: round.tick, type: 'claim', who: a.id, cell: a.cell }); });
+      }
+      case 'BUILD': {
+        if (arg.v === 'wall') {      // Mauer auf eine freie Nachbarzelle: niemand kommt hindurch, bis sie zerstoert wird
+          if (a.inv.stone < R.wall.stone) return fail('missing stone');
+          const c = ins.args[1] ? val(a, ins.args[1]) : -1, tc = nbs(a.cell).includes(c) && passable(c) && !occ.has(c) && !foreignField(a, c) ? c : -1; if (tc < 0) return fail('BUILD wall needs a free neighbour cell, for example BUILD wall, r1');
+          return done(T.craft, () => { if (!passable(tc) || occ.has(tc)) return; a.inv.stone -= R.wall.stone; walls.set(tc, { owner: a.id, cell: tc }); });
+        }
+        if (arg.v === 'fire') { for (const k in R.fire) if (a.inv[k] < R.fire[k]) return fail('missing ' + k);
+          return done(T.craft, () => { for (const k in R.fire) a.inv[k] -= R.fire[k]; fires.set(a.cell, { owner: a.id, until: round.tick + R.fireTicks }); }); }
+        if (fields.get(a.cell) !== a.id) return fail('a hut needs your own field'); if (homeOf(a)) return fail('you already have a hut');
+        const cost = R.home[1]; for (const k in cost) if ((k === 'tokens' ? a.tokens : a.inv[k]) < cost[k]) return fail('missing ' + k);
+        return done(T.build, () => { for (const k in cost) { if (k === 'tokens') a.tokens -= cost[k]; else a.inv[k] -= cost[k]; } homes.set(a.cell, { owner: a.id, tier: 1, cell: a.cell }); a.homeCell = a.cell; events.push({ t: round.tick, type: 'hut', who: a.id, cell: a.cell }); });
+      }
+      case 'UPGRADE': {
+        const h = homeOf(a); if (!h) return fail('no hut'); if (!adjCell(a.cell, a.homeCell)) return fail('not at your hut'); if (h.tier >= 3) return fail('already the best house');
+        const cost = R.home[h.tier + 1]; for (const k in cost) if ((k === 'tokens' ? a.tokens : a.inv[k]) < cost[k]) return fail('missing ' + k);
+        return done(T.upgrade, () => { for (const k in cost) { if (k === 'tokens') a.tokens -= cost[k]; else a.inv[k] -= cost[k]; } if (homes.get(a.homeCell) === h) h.tier++; });
+      }
+      case 'FLY': {     // Heissluftballon: weite Reise in einem Zug, landet auf der naechsten freien Zelle beim Ziel
+        if (!a.inv.balloon) return fail('no balloon'); if (!a.inv.gas) return fail('no gas');
+        const target = val(a, arg); if (!inA.has(target)) return fail('target outside the planet');
+        const d = Math.min(R.flyMax, dist(a.cell, target));
+        return done(Math.max(6, Math.ceil(d / 2)), () => { const land = bfs(target, 8, c => passable(c) && !occ.has(c)); if (!land) return; a.inv.gas--; occ.delete(a.cell); a.cell = land.cell; occ.set(land.cell, a); events.push({ t: round.tick, type: 'fly', who: a.id, cell: land.cell }); });
+      }
+      case 'BOIL': {
+        if (!nearFire(a)) return fail('no fire next to you'); if (!a.inv.dirty) return fail('no dirty water');
+        return done(T.boil, () => { if (!a.inv.dirty) return; a.inv.dirty--; a.inv.water++; });
+      }
       case 'WAIT': return done(Math.max(1, Math.min(200, val(a, arg))), null);
       case 'SAY': return done(T.say, () => say(round.tick, a.name, arg.v));
     }
@@ -302,8 +389,9 @@ export function createRound(world, entries, opts = {}) {
   }
   function stepFn(a) {
     const n = a.path.shift();
-    if (n === undefined || !passable(n) || occ.has(n) || !nbs(a.cell).includes(n)) { a.path = []; return; }
+    if (n === undefined || !canEnter(a, n) || occ.has(n) || !nbs(a.cell).includes(n)) { a.path = []; return; }
     occ.delete(a.cell); a.cell = n; occ.set(n, a); a.stats.steps++;
+    if (isWater(n) && a.inv.boat > 0 && --a.inv.boat <= 0) { a.inv.boat = 0; say(round.tick, a.name, 'boat fell apart'); }
     if (a.path.length) { a.busy = R.stepTicks; a.task = stepFn; }
   }
 
@@ -347,6 +435,11 @@ export function createRound(world, entries, opts = {}) {
     const t = ++round.tick;
     // Reihenfolge wechselt jeden Tick, damit niemand immer zuerst handelt
     const dr = t < R.droughtAt ? 1 : 1 + (1 + Math.floor((t - R.droughtAt) / R.droughtStep));     // Duerre: Durst und Hunger wachsen, bis einer uebrig bleibt
+    const night = isNight();
+    // Gewitter ziehen ueber einen Teil des Planeten, gern dort, wo jemand lebt; Regen loescht Feuer
+    if (t % R.stormEvery === 0) { const al = agents.filter(a => a.alive); if (al.length) { const c = al[Math.floor(rand() * al.length)].cell; round.storm = { c, until: t + R.stormLen }; events.push({ t, type: 'storm', cell: c }); } }
+    if (round.storm && t < round.storm.until && t % 25 === 0) for (const [c, f] of fires) if (inStorm(c)) fires.delete(c);
+    if (t % 200 === 0) for (const [c, f] of fires) if (f.until <= t) fires.delete(c);
     const order = agents.filter(a => a.alive); for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
     for (const a of order) {
       if (!a.alive) continue;
@@ -355,6 +448,9 @@ export function createRound(world, entries, opts = {}) {
       if (a.alive && a.hunger >= 100) damage(a, R.hungerDmg, null, 'hunger');
       if (!a.alive) continue;
       if (a.thirst < 60 && a.hunger < 60) a.hp = Math.min(100, a.hp + R.regen);
+      if (night && !sheltered(a) && !nearFire(a)) damage(a, R.nightDmg, null, 'cold night');
+      if (a.alive && round.storm && t < round.storm.until && !sheltered(a) && inStorm(a.cell)) damage(a, R.stormDmg, null, 'storm');
+      if (!a.alive) continue;
       if (a.busy > 0) { if (--a.busy === 0 && a.task) { const f = a.task; a.task = null; f(a); } if (a.busy > 0) continue; }
       run(a);
     }
@@ -368,8 +464,8 @@ export function createRound(world, entries, opts = {}) {
   };
   round.results = function () {
     // Platz: wer laenger lebt, steht vorn; bei Gleichstand mehr Lebenspunkte, dann mehr Siege im Kampf
-    const sorted = agents.slice().sort((x, y) => (y.alive - x.alive) || ((y.alive ? y.hp : y.diedAt) - (x.alive ? x.hp : x.diedAt)) || (y.kills - x.kills));
-    return sorted.map((a, i) => ({ place: i + 1, key: a.key, name: a.name, author: a.author, version: a.meta.version, alive: a.alive, survived: a.alive ? round.tick : a.diedAt, cause: a.cause, hp: Math.ceil(a.hp), kills: a.kills, stats: a.stats, inv: Object.assign({}, a.inv), errors: a.errors.length }));
+    const sorted = agents.slice().sort((x, y) => (y.alive - x.alive) || ((y.alive ? y.hp : y.diedAt) - (x.alive ? x.hp : x.diedAt)) || (y.tokens - x.tokens) || (y.kills - x.kills));
+    return sorted.map((a, i) => ({ place: i + 1, key: a.key, name: a.name, author: a.author, version: a.meta.version, alive: a.alive, survived: a.alive ? round.tick : a.diedAt, cause: a.cause, hp: Math.ceil(a.hp), kills: a.kills, tokens: a.tokens, home: homeOf(a) ? homeOf(a).tier : 0, stats: a.stats, inv: Object.assign({}, a.inv), errors: a.errors.length }));
   };
   return round;
 }
@@ -876,7 +972,7 @@ After a long round a drought begins: thirst and hunger grow faster and faster un
 
 | Action | Ticks | Needs | Effect |
 | --- | --- | --- | --- |
-| GO cell | 2 per step | path | walk up to 12 steps toward the cell (next to it if it is water) |
+| GO cell | 2 per step | path | walk up to 12 steps toward the cell (next to it if it is water). GO -1 explores: about 12 steps in a random direction, so \`FIND x, r1\` followed by \`GO r1\` searches further when nothing was found |
 | STEP cell or 0-5 | 2 | free cell | one step to a neighbour cell or in direction 0 to 5 |
 | FLEE | 2 per step | someone alive | up to 4 steps away from the nearest gnome |
 | FILL | 5 | water next to you | fresh water gives 1 dirty, sea gives 1 salt |
@@ -893,10 +989,21 @@ After a long round a drought begins: thirst and hunger grow faster and faster un
 | CRAFT knife | 12 | 1 stone, 1 wood | knife with 30 uses |
 | CRAFT filter | 12 | 2 sand, 1 wood | filter with 10 uses |
 | CRAFT still | 12 | 3 stone, 2 wood, 1 sand, free ground | a still on your cell; one per gnome |
+| CRAFT axe / shovel | 12 | axe: 1 stone, 2 wood; shovel: 2 stone, 1 wood | 30 uses; CHOP or DIG gives double |
+| CRAFT boat | 12 | 8 wood | lets GO and STEP cross water; wears out after 400 water steps; FISH from a boat succeeds 50% |
+| SELL item [, n] | 3 | trader next to you | sell n units (default 1, at most 20); the trader pays less when its till runs low |
+| BUY item | 3 | trader next to you, tokens | knife 14, filter 10, seeds 3, food 7, water 5, axe 8, shovel 8, boat 40, balloon 90 (with 3 flights), gas 15 (1 flight) |
+| CLAIM | 10 | 25 tokens | your field: all cells within 2 steps. Others cannot plant, harvest your crops, chop, forage or build there. Claiming again moves it and removes your hut |
+| BUILD hut | 20 | own field under you, 4 wood, 2 stone | your house (level 1) |
+| UPGRADE | 30 | at your house | level 2: 6 wood, 4 stone, 30 tokens; level 3: 8 stone, 2 sand, 60 tokens |
+| BUILD fire | 12 | 2 wood | a fire on your cell for 800 ticks; storms put it out |
+| BUILD wall, cell | 12 | 2 stone, free neighbour cell | nobody can pass until it is sabotaged |
+| BOIL | 10 | fire next to you, dirty | 1 dirty becomes 1 clean water |
+| FLY cell | distance / 2 | balloon, gas | fly up to 80 steps toward the cell and land on the nearest free cell |
 | ATTACK cell | 4 | gnome next to you | 5 damage, 18 with a knife (uses it once). The killer takes the whole inventory |
 | STEAL cell | 4 | gnome next to you | 45% chance to take one unit of food, water, dirty, salt, wood, stone, sand or seeds |
-| SABOTAGE cell | 8 | foreign still or crop next to you | destroys it |
-| REST | 10 | thirst and hunger below 70 | +3 hit points |
+| SABOTAGE cell | 8 | foreign still, crop, wall or house next to you | destroys it; a house loses one level |
+| REST | 10 | thirst and hunger below 70 | +3 hit points, at home 3 times (1 + house level) |
 | WAIT n | n (1-200) | | do nothing |
 | SAY "text" | 1 | | writes a line into the public round log |
 
@@ -904,23 +1011,35 @@ After a long round a drought begins: thirst and hunger grow faster and faster un
 
 hp, thirst, hunger (0 to 150; at 100 you start taking damage), water, dirty, salt, food, seeds, wood, stone, sand,
 knife (uses left), filter (uses left), still (1 if you own one), crop (0 none, 1 growing, 2 ripe), tick, alive (gnomes alive),
-threat (steps to the nearest gnome), hurt (1 if hurt in the last 50 ticks), cell, id, rank (1 = most hit points), drought (0, then 1, 2, ...).
+threat (steps to the nearest gnome), hurt (1 if hurt in the last 50 ticks), cell, id, rank (1 = most hit points), drought (0, then 1, 2, ...), tokens, axe, shovel, boat (wear left), balloon, gas, night (1 at night), storm (1 if a storm is over you), home (your house level), field (1 if you stand on your field), shelter (1 if you are inside your house), fire (1 if a fire is next to you), afloat (1 on water).
 
 ## FIND kinds
 
 fresh, sea, water (either), tree, berry (tree with berries), rock, sand, soil (free ground to plant on), food (ripe crop or berries),
 crop (your ripe crop), mycrop (any of your crops), garden (a foreign crop), still (a foreign still), mystill (yours),
-enemy (nearest gnome), weak (low hit points and near), strong (high hit points and near).
-Terrain is searched up to 30 steps around you. Gnomes are found anywhere on the planet.
+enemy (nearest gnome), weak (low hit points and near), strong (high hit points and near), trader, home (your house), hut (a foreign house), fire, myfield (centre of your field), free (a cell where you could claim a field).
+Terrain is searched up to 30 steps around you. Gnomes are found anywhere on the planet. Every gnome starts with fresh water, trees and usually rock within reach.
 
 ## Survival
 
 Every tick thirst rises by 0.06 and hunger by 0.035. At 100 thirst you lose 0.2 hit points per tick, at 100 hunger 0.1.
-With both below 60 you regain 0.02 per tick. You start with 100 hit points, 1 water, 1 food and 2 seeds.
+With both below 60 you regain 0.02 per tick. You start with 100 hit points, 100 tokens, 1 water, 1 food and 2 seeds.
+
+### Night, storms and shelter
+
+A day lasts 2400 ticks; the last 40% is night. At night you lose 0.03 hit points per tick unless you are inside your house or next to a fire.
+Every 3000 ticks a storm gathers over a random living gnome and covers everything within 14 steps for 500 ticks. Outside a house it costs 0.07 hit points per tick
+and puts fires out, but while it rains FILL works anywhere and gives clean water.
+Inside your house attacks hurt less: 70% damage at level 1, 50% at level 2, 30% at level 3.
+
+### Tokens
+
+Tokens are simulated and only count inside one round. Traders stand at fixed places; each has a till that fills when gnomes buy and empties when they sell.
+Sell prices per unit: wood 2, stone 3, sand 1, food 4, water 3, dirty 1, seeds 1. A killer takes the victim's tokens. At the end of a round tokens break ties.
 
 ## Scoring
 
-Places are ordered by survival time, then hit points, then kills. Points: 10, 6, 4, 3, 2, 1 for places 1 to 6, plus 1 per kill.
+Places are ordered by survival time, then hit points, then tokens, then kills. Points: 10, 6, 4, 3, 2, 1 for places 1 to 6, plus 1 per kill.
 The leaderboard adds up points over all rounds.
 
 ## For agents

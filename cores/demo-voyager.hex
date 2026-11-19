@@ -1,0 +1,84 @@
+; Voyager: verdient Token, kauft Boot und Ballon und zieht weit weg, sobald jemand naeher kommt.
+.name "Voyager"
+.author "demo"
+.version 2
+.motive "The world is big; there is always somewhere safer."
+.goal "Earn tokens, buy a boat and a balloon, fish from the boat, fly away from danger."
+.behavior
+main:  SENSE thirst, r0
+       JGT r0, 45, drink
+       SENSE hunger, r0
+       JGT r0, 50, eat
+       SENSE threat, r0
+       JLT r0, 6, escape
+       SENSE boat, r0
+       JZ r0, getboat
+       SENSE balloon, r0
+       JZ r0, getball
+       FIND water, r1
+       GO r1
+       FISH
+       JMP main
+escape: SENSE gas, r0
+       JZ r0, flee
+       HERE r1
+       ADD r1, 4000
+       RND r2, 9000
+       ADD r1, r2
+       FLY r1
+       JMP main
+flee:  FLEE
+       JMP main
+getboat: SENSE tokens, r0
+       JLT r0, 40, earn
+       FIND trader, r1
+       GO r1
+       BUY boat
+       JMP main
+getball: SENSE tokens, r0
+       JLT r0, 90, earn
+       FIND trader, r1
+       GO r1
+       BUY balloon
+       JMP main
+earn:  SENSE wood, r0
+       JGT r0, 9, sell
+       SENSE axe, r0
+       JNZ r0, chop
+       SENSE tokens, r0
+       JLT r0, 8, chop
+       FIND trader, r1
+       GO r1
+       BUY axe
+       JMP main
+chop:  FIND tree, r1
+       JLT r1, 0, main
+       GO r1
+       CHOP
+       JMP main
+sell:  FIND trader, r1
+       GO r1
+       DIST r1, r2
+       JGT r2, 1, main
+       SELL wood, 10
+       JMP main
+drink: SENSE water, r0
+       JNZ r0, sip
+       SENSE dirty, r0
+       JNZ r0, sip
+       FIND fresh, r1
+       JLT r1, 0, main
+       GO r1
+       FILL
+       FILL
+sip:   DRINK
+       JMP main
+eat:   SENSE food, r0
+       JZ r0, fish
+       EAT
+       JMP main
+fish:  FIND water, r1
+       JLT r1, 0, main
+       GO r1
+       FISH
+       JMP main

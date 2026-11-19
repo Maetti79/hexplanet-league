@@ -1,0 +1,142 @@
+; Homesteader: steckt ein Feld ab, baut eine Huette und baut sie aus. Nachts und im Gewitter geht er nach Hause.
+.name "Homesteader"
+.author "demo"
+.version 2
+.motive "A roof over my head beats any knife."
+.goal "Claim a field, build a hut, upgrade it, sell surplus to traders, stay home at night and in storms."
+.behavior
+main:  SENSE thirst, r0
+       JGT r0, 45, drink
+       SENSE hunger, r0
+       JGT r0, 50, eat
+       SENSE night, r0
+       JNZ r0, gohome
+       SENSE storm, r0
+       JNZ r0, gohome
+       SENSE field, r0
+       SENSE home, r3
+       JNZ r3, hashome
+       SENSE tokens, r0
+       JLT r0, 25, earn
+       FIND free, r1
+       JLT r1, 0, earn
+       GO r1
+       DIST r1, r2
+       JGT r2, 0, main
+       CLAIM
+       JMP main
+hashome: SENSE field, r0
+       JZ r0, tohome
+       JMP up
+tohome: FIND home, r1
+       GO r1
+       JMP main
+build: SENSE wood, r0
+       JLT r0, 4, gw
+       SENSE stone, r0
+       JLT r0, 2, gs
+       FIND myfield, r1
+       GO r1
+       BUILD hut
+       JMP main
+up:    SENSE home, r3
+       JEQ r3, 3, stock
+       SENSE tokens, r0
+       JLT r0, 60, earn
+       SENSE wood, r0
+       JLT r0, 6, gw
+       SENSE stone, r0
+       JLT r0, 8, gs
+       SENSE sand, r0
+       JLT r0, 2, gd
+       FIND home, r1
+       GO r1
+       UPGRADE
+       JMP main
+stock: SENSE dirty, r0
+       JLT r0, 3, getw
+       SENSE food, r0
+       JLT r0, 3, getf
+       FIND home, r1
+       GO r1
+       REST
+       JMP main
+earn:  SENSE wood, r0
+       JGT r0, 6, sell
+       FIND tree, r1
+       JLT r1, 0, gs
+       GO r1
+       CHOP
+       JMP main
+sell:  FIND trader, r1
+       JLT r1, 0, main
+       GO r1
+       DIST r1, r2
+       JGT r2, 1, main
+       SELL wood, 6
+       JMP main
+gohome: SENSE home, r3
+       JZ r3, fire
+       FIND home, r1
+       GO r1
+       DIST r1, r2
+       JGT r2, 0, main
+       REST
+       JMP main
+fire:  SENSE fire, r0
+       JNZ r0, rest
+       SENSE wood, r0
+       JLT r0, 2, rest
+       BUILD fire
+rest:  REST
+       JMP main
+drink: SENSE water, r0
+       JNZ r0, sip
+       SENSE dirty, r0
+       JZ r0, getw
+       SENSE fire, r0
+       JZ r0, sip
+       BOIL
+       JMP main
+sip:   DRINK
+       JMP main
+getw:  FIND fresh, r1
+       JLT r1, 0, main
+       GO r1
+       FILL
+       FILL
+       FILL
+       JMP main
+eat:   SENSE food, r0
+       JZ r0, getf
+       EAT
+       JMP main
+getf:  FIND food, r1
+       JLT r1, 0, buyf
+       GO r1
+       FORAGE
+       HARVEST
+       JMP main
+buyf:  SENSE tokens, r0
+       JLT r0, 7, main
+       FIND trader, r1
+       GO r1
+       BUY food
+       JMP main
+gw:    FIND tree, r1
+       JLT r1, 0, main
+       GO r1
+       CHOP
+       JMP main
+gs:    FIND rock, r1
+       JLT r1, 0, main
+       GO r1
+       DIG
+       JMP main
+gd:    FIND sand, r1
+       JLT r1, 0, main
+       GO r1
+       DIST r1, r2
+       JGT r2, 0, main
+       DIG
+       JMP main

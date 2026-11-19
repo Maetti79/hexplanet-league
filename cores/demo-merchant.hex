@@ -1,0 +1,105 @@
+; Merchant: lebt vom Handel. Holz und Stein gegen Token, Token gegen Essen, Wasser und ein Messer. Nachts am Feuer.
+.name "Merchant"
+.author "demo"
+.version 2
+.motive "Everything has a price."
+.goal "Gather and sell, buy what you need, keep a fire at night, buy a knife for safety."
+.behavior
+main:  SENSE thirst, r0
+       JGT r0, 45, drink
+       SENSE hunger, r0
+       JGT r0, 50, eat
+       SENSE hurt, r0
+       JNZ r0, defend
+       SENSE night, r0
+       JNZ r0, camp
+       SENSE knife, r0
+       JNZ r0, work
+       SENSE tokens, r0
+       JLT r0, 14, work
+       FIND trader, r1
+       GO r1
+       BUY knife
+       JMP main
+work:  SENSE wood, r0
+       JGT r0, 7, sell
+       SENSE stone, r0
+       JGT r0, 5, sells
+       RND r0, 2
+       JZ r0, chop
+       FIND rock, r1
+       JLT r1, 0, chop
+       GO r1
+       DIG
+       JMP main
+chop:  FIND tree, r1
+       JLT r1, 0, main
+       GO r1
+       CHOP
+       JMP main
+sell:  FIND trader, r1
+       GO r1
+       DIST r1, r2
+       JGT r2, 1, main
+       SELL wood, 6
+       JMP main
+sells: FIND trader, r1
+       GO r1
+       DIST r1, r2
+       JGT r2, 1, main
+       SELL stone, 4
+       JMP main
+camp:  SENSE fire, r0
+       JNZ r0, rest
+       SENSE wood, r0
+       JLT r0, 2, rest
+       BUILD fire
+rest:  REST
+       JMP main
+defend: SENSE knife, r0
+       JZ r0, run
+       FIND enemy, r1
+       DIST r1, r2
+       JGT r2, 1, main
+       ATTACK r1
+       JMP main
+run:   FLEE
+       JMP main
+drink: SENSE water, r0
+       JNZ r0, sip
+       SENSE dirty, r0
+       JNZ r0, sipd
+       SENSE tokens, r0
+       JLT r0, 5, getw
+       FIND trader, r1
+       DIST r1, r2
+       JGT r2, 20, getw
+       GO r1
+       BUY water
+       JMP main
+sipd:  SENSE fire, r0
+       JZ r0, sip
+       BOIL
+sip:   DRINK
+       JMP main
+getw:  FIND fresh, r1
+       GO r1
+       FILL
+       FILL
+       JMP main
+eat:   SENSE food, r0
+       JNZ r0, munch
+       SENSE tokens, r0
+       JLT r0, 7, forage
+       FIND trader, r1
+       DIST r1, r2
+       JGT r2, 20, forage
+       GO r1
+       BUY food
+       JMP main
+munch: EAT
+       JMP main
+forage: FIND food, r1
+       GO r1
+       FORAGE
+       JMP main
