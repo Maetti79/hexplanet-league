@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hex Planet Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Eine Welt, ein Thema: Nachtblau des Alls, Glasflaechen, Bernstein als Akzent. Die Welt fuellt das Bild, die Bedienung liegt am Rand. */
+  --space: #04060d;
+  --panel: rgba(14, 20, 38, 0.72);
+  --line: rgba(160, 190, 255, 0.20);
+  --ink: #eef2ff;
+  --muted: #a3afcf;
+  --accent: #ffc45c;
+  --water: #62d6cb;
+  --display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--space); color: var(--ink); font-family: var(--body); font-size: 14px; line-height: 1.4; overflow: hidden; }
+#view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#view:active { cursor: grabbing; }
+.glass { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+#top { position: fixed; top: 16px; left: 16px; right: 16px; display: flex; gap: 12px; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; pointer-events: none; }
+#top > * { pointer-events: auto; }
+#card { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; max-width: 100%; }
+h1 { font-family: var(--display); font-weight: 600; font-size: 20px; margin: 0; letter-spacing: 0.01em; }
+.sub { margin: 0; color: var(--muted); font-size: 12px; }
+.env { color: var(--ink); margin-top: 4px; font-variant-numeric: tabular-nums; }
+#wind-arrow { width: 12px; height: 12px; vertical-align: -1px; margin-right: 4px; fill: var(--water); }
+#stats { display: flex; gap: 16px; flex-wrap: wrap; margin: 0; padding: 0; list-style: none; }
+#stats li { display: flex; flex-direction: column; }
+#stats .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+#stats .v { font-family: var(--display); font-weight: 500; font-size: 18px; font-variant-numeric: tabular-nums; }
+#stats .v.tok { color: var(--accent); }
+#actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+button { font: inherit; color: var(--ink); cursor: pointer; }
+.btn { padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: #2a1c02; border-color: var(--accent); font-weight: 600; }
+button:focus-visible { outline: 2px solid var(--water); outline-offset: 2px; }
+#bottom { position: fixed; left: 16px; right: 16px; bottom: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+#bottom > * { pointer-events: auto; }
+#tools { display: flex; gap: 6px; padding: 6px; max-width: 100%; overflow-x: auto; }
+.tool { display: grid; grid-template-columns: 22px auto; grid-template-rows: auto auto; column-gap: 8px; align-items: center; padding: 8px 12px; min-width: 96px; background: transparent; border: 1px solid transparent; border-radius: 10px; text-align: left; white-space: nowrap; }
+.tool svg { grid-row: 1 / span 2; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tool .tname { font-weight: 600; }
+.tool .tcount { grid-column: 2; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; min-height: 16px; }
+.tool:hover { border-color: var(--line); }
+.tool[aria-pressed="true"] { background: rgba(255, 196, 92, 0.16); border-color: var(--accent); color: var(--accent); }
+.tool[aria-pressed="true"] .tcount { color: var(--accent); }
+#swatches { display: flex; gap: 8px; padding: 8px 10px; }
+#swatches[hidden] { display: none; }
+#bmats { display: flex; gap: 8px; padding: 8px 10px; flex-wrap: wrap; justify-content: center; }
+#bmats[hidden] { display: none; }
+.swatch { width: 26px; height: 26px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.35); padding: 0; }
+.swatch.on { border-color: var(--ink); box-shadow: 0 0 0 2px var(--accent); }
+#toast { padding: 8px 14px; opacity: 0; transform: translateY(6px); transition: opacity .2s, transform .2s; max-width: min(520px, 100%); text-align: center; }
+#toast.show { opacity: 1; transform: none; }
+#help { position: fixed; right: 16px; top: 68px; width: min(340px, calc(100% - 32px)); padding: 14px 16px; }
+#help[hidden] { display: none; }
+#help h2 { font-family: var(--display); font-weight: 600; font-size: 16px; margin: 0 0 8px; }
+#help dl { margin: 0 0 12px; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
+#help dt { color: var(--accent); font-weight: 600; white-space: nowrap; }
+#help dd { margin: 0; color: var(--ink); }
+#help p { margin: 0 0 12px; color: var(--muted); }
+#loading { position: fixed; inset: 0; display: grid; place-items: center; font-family: var(--display); font-size: 20px; color: var(--muted); pointer-events: none; }
+#loading[hidden] { display: none; }
+#shop { position: fixed; right: 16px; top: 68px; bottom: 96px; width: min(360px, calc(100% - 32px)); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+#shop[hidden] { display: none; }
+#econ { position: fixed; left: 16px; top: 196px; bottom: 96px; width: min(360px, calc(100% - 32px)); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+#econ[hidden] { display: none; }
+#econ-body { overflow: auto; flex: 1; }
+#econ h2 { font-family: var(--display); font-weight: 600; font-size: 18px; margin: 0 0 2px; }
+#econ h3 { font-family: var(--display); font-weight: 600; font-size: 14px; margin: 12px 0 2px; color: var(--accent); }
+.erow { display: grid; grid-template-columns: 1fr auto; gap: 0 12px; padding: 5px 0; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.erow .sdesc { grid-column: 1 / -1; }
+body.gated #econ { display: none; }
+#league { position: fixed; right: 16px; top: 76px; bottom: 16px; width: min(440px, calc(100% - 32px)); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; z-index: 5; }
+#league[hidden] { display: none; }
+#league-body { overflow: auto; flex: 1; }
+#league h2 { font-family: var(--display); font-weight: 600; font-size: 18px; margin: 0 0 2px; }
+#league h3 { font-family: var(--display); font-weight: 600; font-size: 14px; margin: 12px 0 2px; color: var(--accent); }
+.ltabs, .lfoot { display: flex; gap: 6px; flex-wrap: wrap; }
+.ltab { font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: inherit; cursor: pointer; }
+.ltab.on { background: var(--accent); color: #1a1408; border-color: transparent; }
+.lrow { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; width: 100%; text-align: left; font: inherit; color: inherit; background: transparent; border: 0; border-top: 1px solid var(--line); padding: 6px 4px; cursor: pointer; }
+.lrow.on { background: rgba(255,255,255,0.07); }
+.lrow.dead { opacity: 0.5; }
+.lrow .lstat, .lrow .sdesc { grid-column: 1 / -1; }
+.lbar { display: inline-block; width: 30%; height: 5px; margin-right: 3%; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+.lbar i { display: block; height: 100%; }
+.lcore { border-top: 1px solid var(--line); padding: 6px 0; }
+.lcore summary { cursor: pointer; }
+#league pre { white-space: pre-wrap; font-size: 11.5px; line-height: 1.45; background: rgba(0,0,0,0.25); padding: 8px; border-radius: 8px; }
+body.spectator #tools, body.spectator #swatches, body.spectator #econ, body.spectator #shop { display: none !important; }
+body.leaguemode #btn-fig, body.leaguemode #btn-npc, body.leaguemode #btn-speed, body.leaguemode #btn-econ, body.leaguemode #btn-char, body.leaguemode #btn-new, body.leaguemode #btn-volc, body.leaguemode #stats, body.leaguemode #bottom { display: none !important; }
+#shop-body { overflow: auto; flex: 1; }
+#shop h2 { font-family: var(--display); font-weight: 600; font-size: 18px; margin: 0 0 2px; }
+#shop h3 { font-family: var(--display); font-weight: 600; font-size: 14px; margin: 12px 0 2px; color: var(--accent); }
+.shoprow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 0; border-top: 1px solid var(--line); }
+.shoprow strong { display: block; font-weight: 600; }
+.owned { color: var(--water); font-weight: 600; font-size: 12px; }
+.chip:disabled { opacity: 0.4; cursor: default; border-color: var(--line); }
+body.gated #shop { display: none; }
+#stat-fps { position: fixed; left: 16px; bottom: 16px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; pointer-events: none; }
+body.gated #top, body.gated #bottom, body.gated #help, body.gated #stat-fps { display: none; }
+#gate { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(4, 6, 13, 0.38); overflow: auto; }
+#gate[hidden] { display: none; }
+#join { max-width: 440px; padding: 28px 28px 20px; text-align: left; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+#join[hidden], #maker[hidden] { display: none; }
+#join p { margin: 0; font-size: 16px; line-height: 1.5; }
+.hero { font-family: var(--display); font-weight: 600; font-size: 40px; line-height: 1.05; margin: 0; text-wrap: balance; }
+.note { color: var(--muted); font-size: 12px !important; margin: 0; }
+.btn.big { padding: 12px 22px; font-size: 16px; border-radius: 12px; }
+#maker { width: min(880px, 100%); max-height: 100%; overflow: auto; padding: 20px; display: grid; grid-template-columns: 280px 1fr; gap: 24px; }
+#maker h2 { font-family: var(--display); font-weight: 600; font-size: 24px; margin: 0 0 12px; }
+#maker h3 { font-family: var(--display); font-weight: 600; font-size: 16px; margin: 16px 0 2px; }
+#maker-left { display: flex; flex-direction: column; gap: 8px; }
+#gnome-view { width: 100%; aspect-ratio: 3 / 4; border-radius: 12px; cursor: grab; touch-action: none; background: radial-gradient(ellipse at 50% 88%, rgba(98, 214, 203, 0.30), rgba(98, 214, 203, 0) 46%), linear-gradient(180deg, rgba(120, 150, 230, 0.20), rgba(20, 28, 54, 0.30)); border: 1px solid var(--line); }
+#gnome-name { font: inherit; font-family: var(--display); font-size: 18px; color: var(--ink); background: rgba(255,255,255,0.06); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; width: 100%; }
+#gnome-name:focus-visible { outline: 2px solid var(--water); outline-offset: 2px; }
+.orow { display: grid; grid-template-columns: 96px 1fr; gap: 8px 12px; align-items: center; padding: 5px 0; }
+.olabel { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { padding: 6px 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: 999px; font-weight: 500; }
+.chip:hover { border-color: var(--accent); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #2a1c02; font-weight: 600; }
+.srow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 0; border-top: 1px solid var(--line); }
+.srow strong { font-weight: 600; display: block; }
+.sdesc { color: var(--muted); font-size: 12px; }
+.sctl { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.dots { color: var(--accent); letter-spacing: 3px; font-size: 16px; min-width: 52px; text-align: center; }
+#btn-enter { margin-top: 16px; }
+@media (max-width: 720px) {
+  #maker { grid-template-columns: 1fr; }
+  #gnome-view { aspect-ratio: 4 / 3; }
+  .orow { grid-template-columns: 1fr; }
+  .tool { min-width: 0; grid-template-columns: 20px; padding: 8px 10px; }
+  .tool .tname { display: none; }
+  .tool .tcount { grid-column: 1; grid-row: 3; text-align: center; font-size: 11px; }
+  #stat-fps { display: none; }
+  #help { top: auto; bottom: 96px; }
+}
+@media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
+</style>
+</head>
+<body>
+<canvas id="view" aria-label="The planet. Drag to rotate, scroll to zoom, click to send your character."></canvas>
+
+<div id="top">
+  <div id="card" class="glass">
+    <div>
+      <h1>Hex Planet</h1>
+      <p class="sub"><span id="who">Gnome</span> · <span id="stat-cells"></span></p>
+      <p class="sub env"><span id="clock">Day 1</span> · <svg id="wind-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l5 8h-3.500v10h-3V11H7z"/></svg><span id="wind">Light breeze</span> · <span id="sea">Sea level +0.0000</span><span id="boxinfo"></span></p>
+    </div>
+    <ul id="stats">
+      <li><span class="k">Tokens</span><span class="v tok" id="tok">0</span></li>
+      <li><span class="k">Dirt</span><span class="v" id="erde">0</span></li>
+      <li><span class="k">Stone</span><span class="v" id="stein">0</span></li>
+      <li><span class="k">Wood</span><span class="v" id="holz">0</span></li>
+      <li><span class="k">Camp</span><span class="v" id="house">No field</span></li>
+    </ul>
+  </div>
+  <div id="actions">
+    <button class="btn primary" id="btn-fig" type="button">Go to character</button>
+    <button class="btn" id="btn-npc" type="button">Find trader</button>
+    <button class="btn" id="btn-volc" type="button" hidden>Volcano</button>
+    <button class="btn" id="btn-speed" type="button">Speed ×1</button>
+    <button class="btn" id="btn-econ" type="button">Economy</button>
+    <button class="btn" id="btn-league" type="button">AI League</button>
+    <button class="btn" id="btn-char" type="button">Character</button>
+    <button class="btn" id="btn-help" type="button">Controls</button>
+    <button class="btn" id="btn-reset" type="button">New world</button>
+  </div>
+</div>
+
+<div id="help" class="glass">
+  <h2>Controls</h2>
+  <dl>
+    <dt>Drag</dt><dd>Rotate the planet</dd>
+    <dt>Scroll or pinch</dt><dd>Zoom from the globe down to your character</dd>
+    <dt>Right-drag, Q and E</dt><dd>Turn the view</dd>
+    <dt>Click</dt><dd>Your character walks there and uses the selected tool</dd>
+    <dt>Space</dt><dd>Jump to your character</dd>
+    <dt>1 to 9</dt><dd>Pick a tool</dd>
+    <dt>Build</dt><dd>Add floors to any dry plot once your camp has reached the level and you own the blueprint: timber from a wooden hut, stone from a stone house, concrete from a concrete house. Timber carries 2 more floors, stone 4, concrete 7. Neighbours on the same ground join into one house. The shovel takes the top floor down, paint colours the walls</dd>
+    <dt>Other gnomes</dt><dd>Twenty gnomes buy fields, chop, quarry, trade and build by the same rules. Their fields are protected. Economy shows where the tokens are; Speed ×10 or ×60 fast-forwards them and the clock</dd>
+    <dt>Nature</dt><dd>Now and then the ground rises into a volcano. Lava runs downhill, cools to rock, weathers to dirt and turns back into meadow over the following days. Forests seed themselves and young trees grow; some regions carry dense, dark forest. Thunderstorms bring lightning that sets forests on fire, and rain that puts fires out again. Lava, fire, lightning and flood water do not stop at your field: lava only runs downhill, so a trench catches it, concrete blocks it, and a camp on raised ground stays safe</dd>
+    <dt>Damage</dt><dd>Buildings take damage, turn sooty and lose their top floors. Your camp stays yours even as a ruin: click it with Camp to repair it one step at a time. Other buildings are repaired with Build</dd>
+    <dt>Camp</dt><dd>First buy a field. Then click the plot inside it for your tent; while it is a tent you can move it. Click the camp to upgrade it. Every house after the tent grows out of the shape of its plot, crooked like the ones you build yourself, and floors you build next to it at the same height join it. Stone houses and larger cover seven level plots</dd>
+    <dt>Trader</dt><dd>Click a market stall to buy tools and blueprints and to sell stone and wood</dd>
+    <dt>Wanderer</dt><dd>Once a game hour he buries a box if the last one was found and enough was going on. Look for freshly turned earth and dig</dd>
+  </dl>
+  <p>Deep water needs a boat, and a balloon flies over everything. A tailwind speeds both up. One game hour lasts 12.5 minutes; Time ×60 lets you watch a day pass.</p>
+  <button class="btn" id="help-close" type="button">Close</button>
+</div>
+
+<div id="econ" class="glass" hidden>
+  <div id="econ-body"></div>
+  <button class="btn" id="econ-close" type="button">Close</button>
+</div>
+
+<div id="league" class="glass" hidden>
+  <div class="ltabs"><button class="ltab on" data-t="live" type="button">Live</button><button class="ltab" data-t="result" type="button">Result</button><button class="ltab" data-t="board" type="button">Leaderboard</button><button class="ltab" data-t="cores" type="button">Cores</button><button class="ltab" data-t="lang" type="button">Language</button></div>
+  <div id="league-body"></div>
+  <div class="lfoot"><button class="btn primary" id="league-start" type="button">Start round</button><button class="btn" id="league-speed" type="button">100x</button><button class="btn" id="league-close" type="button">Close</button></div>
+</div>
+
+<div id="shop" class="glass" hidden>
+  <div id="shop-body"></div>
+  <button class="btn" id="shop-close" type="button">Close</button>
+</div>
+
+<div id="bottom">
+  <div id="toast" class="glass" role="status" aria-live="polite"></div>
+  <div id="swatches" class="glass" hidden></div>
+  <div id="bmats" class="glass" hidden></div>
+  <div id="tools" class="glass" role="toolbar" aria-label="Tools"></div>
+</div>
+<div id="stat-fps"></div>
+
+<div id="gate">
+  <section id="join" class="glass">
+    <h2 class="hero">Hex Planet</h2>
+    <p>A small, unfinished world of crooked hexes. Dig, build, paint and reroute water. Whatever you change stays changed for everyone.</p>
+    <button class="btn primary big" id="btn-join" type="button">Join</button>
+    <p class="note">Prototype: no wallet and no payment. In the game, joining connects your wallet and mints your gnome.</p>
+  </section>
+  <section id="maker" class="glass" hidden>
+    <div id="maker-left">
+      <canvas id="gnome-view" aria-label="Preview of your gnome. Drag to turn."></canvas>
+      <label class="olabel" for="gnome-name">Name</label>
+      <input id="gnome-name" type="text" maxlength="16" autocomplete="off">
+      <button class="btn" id="btn-random" type="button">Surprise me</button>
+    </div>
+    <div id="maker-right">
+      <h2>Create your gnome</h2>
+      <div id="opts"></div>
+      <h3>Skills</h3>
+      <p class="note" id="pts"></p>
+      <div id="skills"></div>
+      <button class="btn primary big" id="btn-enter" type="button">Enter world</button>
+    </div>
+  </section>
+</div>
+<div id="loading">Building the world…</div>
+
+<script type="importmap">{"imports":{"three":"__THREE_URL__","three/addons/":"__ADDONS_URL__"}}</script>
+<script type="module">
+__MAIN__
+</script>
+</body>
+</html>
