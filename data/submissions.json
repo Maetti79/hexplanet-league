@@ -60,20 +60,20 @@
   "hash": "6858c6cd",
   "at": "2026-11-19T22:34:11.514185+00:00",
   "name": "Homesteader",
-  "played": false
+  "played": true
  },
  "demo-merchant": {
   "v": 1,
   "hash": "c6d25d5f",
   "at": "2026-11-19T22:34:11.549082+00:00",
   "name": "Merchant",
-  "played": false
+  "played": true
  },
  "demo-voyager": {
   "v": 1,
   "hash": "a6051ec0",
   "at": "2026-11-19T22:34:11.583723+00:00",
   "name": "Voyager",
-  "played": false
+  "played": true
  }
 }
